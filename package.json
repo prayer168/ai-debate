@@ -1,0 +1,12 @@
+{
+  "name": "ai-debate",
+  "version": "1.0.0",
+  "description": "Two AIs debate each other on any topic",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

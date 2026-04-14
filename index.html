@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI 辩论场</title>
+<style>
+  :root {
+    --pro:    #2563eb;
+    --con:    #dc2626;
+    --bg:     #0f172a;
+    --card:   #1e293b;
+    --border: #334155;
+    --text:   #e2e8f0;
+    --sub:    #94a3b8;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 28px 32px 0;
+    text-align: center;
+  }
+  header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #60a5fa, #f472b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  header p { color: var(--sub); margin-top: 6px; font-size: 0.9rem; }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    top: 20px; left: 50%; transform: translateX(-50%);
+    background: #7f1d1d;
+    border: 1px solid #f87171;
+    color: #fecaca;
+    padding: 10px 24px;
+    border-radius: 999px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+    white-space: nowrap;
+  }
+  #toast.show { opacity: 1; }
+
+  /* Setup */
+  #setup {
+    max-width: 860px;
+    margin: 28px auto 0;
+    padding: 0 16px;
+    width: 100%;
+  }
+  .topic-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .topic-row input {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 1rem;
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    outline: none;
+    transition: border-color .2s;
+  }
+  .topic-row input:focus { border-color: #60a5fa; }
+  .topic-row input::placeholder { color: var(--sub); }
+
+  .models-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .side-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .side-card.pro { border-top: 3px solid var(--pro); }
+  .side-card.con { border-top: 3px solid var(--con); }
+
+  .side-card > label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .side-card.pro > label { color: #60a5fa; }
+  .side-card.con > label { color: #f87171; }
+
+  .side-card select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 0.9rem;
+    padding: 9px 12px;
+    border-radius: 8px;
+    outline: none;
+    cursor: pointer;
+  }
+  .side-card select option:disabled { color: #475569; }
+  .side-card .model-sub { margin-top: 6px; font-size: 0.78rem; color: var(--sub); }
+
+  .controls-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+  .rounds-label {
+    font-size: 0.85rem;
+    color: var(--sub);
+    white-space: nowrap;
+  }
+  .rounds-label input[type=range] {
+    accent-color: #60a5fa;
+    margin: 0 8px;
+    cursor: pointer;
+  }
+  #roundsVal { font-weight: 600; color: var(--text); }
+
+  #btnStart {
+    margin-left: auto;
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    color: #fff;
+    border: none;
+    padding: 12px 32px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: opacity .2s, transform .1s;
+  }
+  #btnStart:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
+  #btnStart:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+  /* Arena */
+  #arena {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 16px 48px;
+    width: 100%;
+    display: none;
+  }
+  .arena-header {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  .topic-badge {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 20px;
+    font-size: 0.9rem;
+    color: var(--sub);
+    max-width: 90%;
+    text-align: center;
+  }
+  .topic-badge span { color: var(--text); font-weight: 600; }
+
+  .arena-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .col-header {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: 10px 16px;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .col-header.pro { background: rgba(37,99,235,.25); color: #93c5fd; border-bottom: 2px solid var(--pro); }
+  .col-header.con { background: rgba(220,38,38,.2);  color: #fca5a5; border-bottom: 2px solid var(--con); }
+  .col-header .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: none;
+  }
+  .col-header.pro .dot { background: #60a5fa; }
+  .col-header.con .dot { background: #f87171; }
+  .col-header .dot.active { display: inline-block; animation: pulse 1.2s ease-in-out infinite; }
+
+  .col-body {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 16px;
+    min-height: 300px;
+    max-height: 540px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .speech-bubble {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 0.9rem;
+    line-height: 1.7;
+    animation: fadeIn .3s ease;
+  }
+  .speech-bubble .round-tag {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .speech-bubble.pro .round-tag { color: #60a5fa; }
+  .speech-bubble.con .round-tag { color: #f87171; }
+  .speech-bubble .content { white-space: pre-wrap; }
+  .cursor {
+    display: inline-block;
+    width: 2px; height: 1em;
+    background: currentColor;
+    vertical-align: text-bottom;
+    animation: blink .7s step-end infinite;
+    margin-left: 1px;
+  }
+
+  #statusBar {
+    text-align: center;
+    padding: 12px 0 16px;
+    font-size: 0.85rem;
+    color: var(--sub);
+    min-height: 40px;
+  }
+  #statusBar.error { color: #f87171; }
+
+  #doneBanner {
+    display: none;
+    text-align: center;
+    margin: 12px 0;
+    padding: 14px 24px;
+    background: linear-gradient(135deg, rgba(37,99,235,.12), rgba(124,58,237,.12));
+    border: 1px solid rgba(96,165,250,.25);
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    color: #c4b5fd;
+  }
+
+  /* server-offline notice */
+  #offlineNotice {
+    display: none;
+    max-width: 860px;
+    margin: 16px auto 0;
+    padding: 0 16px;
+  }
+  #offlineNotice .notice-box {
+    background: rgba(251,191,36,.08);
+    border: 1px solid rgba(251,191,36,.4);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    font-size: 0.85rem;
+    color: #fde68a;
+    line-height: 1.7;
+  }
+  #offlineNotice code {
+    background: rgba(0,0,0,.3);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+  }
+
+  @keyframes pulse  { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+  @keyframes blink  { 0%,100%{opacity:1} 50%{opacity:0} }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+  @keyframes shake  { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-6px)} 40%,80%{transform:translateX(6px)} }
+  .shake { animation: shake .35s ease; border-color: #f87171 !important; }
+
+  @media (max-width: 640px) {
+    .models-row, .arena-cols { grid-template-columns: 1fr; }
+    header h1 { font-size: 1.5rem; }
+    .controls-row { flex-wrap: wrap; }
+    #btnStart { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<header>
+  <h1>AI 辩论场</h1>
+  <p>输入主题，选择双方模型，见证两个 AI 的智识交锋</p>
+</header>
+
+<!-- 离线提示（服务器未启动时显示） -->
+<div id="offlineNotice">
+  <div class="notice-box">
+    ⚠️ 后端服务器未连接。请在终端执行以下命令启动服务器，再刷新此页面：<br><br>
+    <code>node server.js</code>
+    &nbsp;（需先在同目录创建 <code>.env</code> 文件并填入 <code>ANTHROPIC_API_KEY=sk-ant-...</code>）
+  </div>
+</div>
+
+<!-- Setup -->
+<div id="setup">
+  <div class="topic-row">
+    <input id="topicInput" type="text"
+      placeholder="输入辩题，例如：人工智能将取代大多数人类工作"
+      maxlength="200" />
+  </div>
+
+  <div class="models-row">
+    <div class="side-card pro">
+      <label>甲方（支持方）</label>
+      <select id="proModel"></select>
+      <div class="model-sub" id="proModelSub"></div>
+    </div>
+    <div class="side-card con">
+      <label>乙方（反对方）</label>
+      <select id="conModel"></select>
+      <div class="model-sub" id="conModelSub"></div>
+    </div>
+  </div>
+
+  <div class="controls-row">
+    <span class="rounds-label">
+      辩论轮数：
+      <input type="range" id="roundsSlider" min="1" max="6" value="3" />
+      <span id="roundsVal">3</span> 轮
+    </span>
+    <button id="btnStart">开始辩论</button>
+  </div>
+</div>
+
+<!-- Arena -->
+<div id="arena">
+  <div class="arena-header">
+    <div class="topic-badge">辩题：<span id="topicDisplay"></span></div>
+  </div>
+  <div class="arena-cols">
+    <div>
+      <div class="col-header pro">
+        <div class="dot" id="proDot"></div>
+        甲方 &mdash; <span id="proLabel"></span>
+      </div>
+      <div class="col-body" id="proCol"></div>
+    </div>
+    <div>
+      <div class="col-header con">
+        <div class="dot" id="conDot"></div>
+        乙方 &mdash; <span id="conLabel"></span>
+      </div>
+      <div class="col-body" id="conCol"></div>
+    </div>
+  </div>
+  <div id="doneBanner"></div>
+  <div id="statusBar"></div>
+</div>
+
+<script>
+const BASE = (() => {
+  // 如果从 file:// 打开，指向本机服务器
+  if (location.protocol === 'file:') return 'http://localhost:3000';
+  return '';
+})();
+
+const FALLBACK_MODELS = [
+  { id: 'claude-opus-4-6',           label: 'Claude Opus 4.6',   provider: 'anthropic', available: true },
+  { id: 'claude-sonnet-4-6',         label: 'Claude Sonnet 4.6', provider: 'anthropic', available: true },
+  { id: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5',  provider: 'anthropic', available: true },
+  { id: 'gpt-4o',                    label: 'GPT-4o',            provider: 'openai',    available: false },
+  { id: 'gpt-4o-mini',               label: 'GPT-4o mini',       provider: 'openai',    available: false },
+];
+
+let models = [...FALLBACK_MODELS];
+
+// ── 初始化 ──
+async function init() {
+  populateSelects(models);
+  try {
+    const res  = await fetch(`${BASE}/api/models`, { signal: AbortSignal.timeout(3000) });
+    const live = await res.json();
+    models = live;
+    populateSelects(models);
+    document.getElementById('offlineNotice').style.display = 'none';
+  } catch {
+    document.getElementById('offlineNotice').style.display = 'block';
+    showToast('后端未连接，请先启动 node server.js');
+  }
+}
+
+function populateSelects(list) {
+  ['proModel', 'conModel'].forEach((id, i) => {
+    const prev = document.getElementById(id).value;
+    const sel  = document.getElementById(id);
+    sel.innerHTML = '';
+    list.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.id;
+      opt.textContent = m.label + (m.available ? '' : ' (未配置)');
+      opt.disabled = !m.available;
+      sel.appendChild(opt);
+    });
+    // 尝试恢复之前的选择，否则用默认
+    const avail = list.filter(m => m.available);
+    if (prev && list.find(m => m.id === prev && m.available)) {
+      sel.value = prev;
+    } else {
+      sel.value = avail[i]?.id ?? avail[0]?.id ?? list[0].id;
+    }
+  });
+  updateModelSubs();
+}
+
+function updateModelSubs() {
+  ['pro', 'con'].forEach(side => {
+    const val = document.getElementById(side + 'Model').value;
+    const m   = models.find(x => x.id === val);
+    document.getElementById(side + 'ModelSub').textContent =
+      m ? `Provider: ${m.provider}` : '';
+  });
+}
+
+document.getElementById('proModel').addEventListener('change', updateModelSubs);
+document.getElementById('conModel').addEventListener('change', updateModelSubs);
+
+const slider = document.getElementById('roundsSlider');
+slider.addEventListener('input', () => {
+  document.getElementById('roundsVal').textContent = slider.value;
+});
+
+// ── 开始辩论 ──
+let isRunning = false;
+
+document.getElementById('btnStart').addEventListener('click', startDebate);
+document.getElementById('topicInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') startDebate();
+});
+
+async function startDebate() {
+  if (isRunning) return;
+
+  const topic    = document.getElementById('topicInput').value.trim();
+  const proModel = document.getElementById('proModel').value;
+  const conModel = document.getElementById('conModel').value;
+  const rounds   = parseInt(slider.value);
+
+  if (!topic) {
+    const inp = document.getElementById('topicInput');
+    inp.focus();
+    inp.classList.remove('shake');
+    void inp.offsetWidth;
+    inp.classList.add('shake');
+    setTimeout(() => inp.classList.remove('shake'), 400);
+    showToast('请先输入辩题');
+    return;
+  }
+
+  // 重置辩论区
+  document.getElementById('proCol').innerHTML  = '';
+  document.getElementById('conCol').innerHTML  = '';
+  document.getElementById('doneBanner').style.display = 'none';
+  document.getElementById('arena').style.display = 'block';
+  document.getElementById('topicDisplay').textContent = topic;
+
+  const label = id => (models.find(m => m.id === id) || {}).label || id;
+  document.getElementById('proLabel').textContent = label(proModel);
+  document.getElementById('conLabel').textContent = label(conModel);
+
+  setDot('pro', false); setDot('con', false);
+  setStatus('连接中…');
+  setBtnDisabled(true);
+  document.getElementById('arena').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  isRunning = true;
+
+  try {
+    const resp = await fetch(`${BASE}/api/debate`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ topic, proModel, conModel, rounds }),
+    });
+
+    if (!resp.ok) {
+      const d = await resp.json().catch(() => ({}));
+      throw new Error(d.error ?? `HTTP ${resp.status}`);
+    }
+
+    const reader = resp.body.getReader();
+    const dec    = new TextDecoder();
+    let buf = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      let evt = null;
+      for (const line of lines) {
+        if (line.startsWith('event: '))     { evt = line.slice(7).trim(); }
+        else if (line.startsWith('data: ')) {
+          try { handleSSE(evt, JSON.parse(line.slice(6))); } catch {}
+        }
+      }
+    }
+  } catch (err) {
+    setStatus('错误：' + err.message, true);
+    showToast('错误：' + err.message);
+  } finally {
+    isRunning = false;
+    setBtnDisabled(false);
+    setDot('pro', false);
+    setDot('con', false);
+  }
+}
+
+let _curBubble = null;
+
+function handleSSE(event, data) {
+  switch (event) {
+    case 'start':
+      setStatus(`第 1 轮即将开始…`);
+      break;
+    case 'turn_start':
+      setDot(data.side, true);
+      setDot(data.side === 'pro' ? 'con' : 'pro', false);
+      setStatus(`第 ${data.round} 轮 — ${data.side === 'pro' ? '甲方' : '乙方'} 发言中…`);
+      _curBubble = createBubble(data.side, data.round);
+      break;
+    case 'token':
+      if (_curBubble) {
+        _curBubble.contentEl.textContent += data.token;
+        scrollCol(data.side);
+      }
+      break;
+    case 'turn_end':
+      if (_curBubble) { _curBubble.cursorEl.remove(); _curBubble = null; }
+      setDot(data.side, false);
+      break;
+    case 'done':
+      setStatus('辩论已结束');
+      const banner = document.getElementById('doneBanner');
+      banner.textContent = '辩论结束！以上内容由 AI 自动生成，仅供参考与娱乐。';
+      banner.style.display = 'block';
+      break;
+    case 'error':
+      setStatus('错误：' + data.message, true);
+      showToast('错误：' + data.message);
+      break;
+  }
+}
+
+// ── DOM 工具 ──
+function createBubble(side, round) {
+  const col = document.getElementById(side + 'Col');
+  const el  = document.createElement('div');
+  el.className = `speech-bubble ${side}`;
+
+  const tag = document.createElement('div');
+  tag.className = 'round-tag';
+  tag.textContent = `第 ${round} 轮`;
+  el.appendChild(tag);
+
+  const content = document.createElement('span');
+  content.className = 'content';
+  el.appendChild(content);
+
+  const cursor = document.createElement('span');
+  cursor.className = 'cursor';
+  el.appendChild(cursor);
+
+  col.appendChild(el);
+  scrollCol(side);
+  return { el, contentEl: content, cursorEl: cursor };
+}
+
+function scrollCol(side) {
+  const col = document.getElementById(side + 'Col');
+  col.scrollTop = col.scrollHeight;
+}
+function setDot(side, active) {
+  document.getElementById(side + 'Dot').classList.toggle('active', active);
+}
+function setStatus(msg, isError = false) {
+  const bar = document.getElementById('statusBar');
+  bar.textContent = msg;
+  bar.className = isError ? 'error' : '';
+}
+function setBtnDisabled(v) {
+  document.getElementById('btnStart').disabled = v;
+}
+
+let _toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+init();
+</script>
+</body>
+</html>
