@@ -638,15 +638,6 @@
       sandX.fill();
     }
 
-    // Faint dust halo at impact
-    const halo = sandX.createRadialGradient(
-      p.dstX, p.dstY, 0, p.dstX, p.dstY, p.r * 5 + 3);
-    halo.addColorStop(0,   'rgba(90,55,20,0.12)');
-    halo.addColorStop(1,   'rgba(90,55,20,0)');
-    sandX.beginPath();
-    sandX.arc(p.dstX, p.dstY, p.r * 5 + 3, 0, Math.PI * 2);
-    sandX.fillStyle = halo;
-    sandX.fill();
 
     sandX.restore();
   }
@@ -922,9 +913,9 @@
   // ──────────────────────────────────────────────────────────
   function emitSand(bob, t) {
     frameN++;
-    if (frameN % 3 !== 0) return;
+    if (frameN % 8 !== 0) return;
     const dst = sandDest(t);
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 1; i++) {
       particles.push(makeParticle(bob.x, bob.y, bob.vx, dst));
     }
     particles = particles.filter(p => !p.done);
