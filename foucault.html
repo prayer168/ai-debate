@@ -474,6 +474,93 @@
   // ──────────────────────────────────────────────────────────
   //  DRAW
   // ──────────────────────────────────────────────────────────
+
+  // ① Disc glow — soft golden halo radiating outward from rim
+  function drawDiscGlow() {
+    const glow = ctx.createRadialGradient(
+      BCX, BCY, BR_X * 0.85,
+      BCX, BCY, BR_X * 1.55
+    );
+    glow.addColorStop(0,   'rgba(200,148,40,0.22)');
+    glow.addColorStop(0.4, 'rgba(160,100,20,0.10)');
+    glow.addColorStop(1,   'rgba(80,40,5,0)');
+    ctx.save();
+    ctx.scale(1, TILT);
+    ctx.beginPath();
+    ctx.arc(BCX, BCY / TILT, BR_X * 1.55, 0, Math.PI * 2);
+    ctx.fillStyle = glow;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // ② Bob shadow — ellipse projected onto disc surface
+  function drawBobShadow(bx, by) {
+    // Map bob screen-x to world-x offset on disc
+    const wx = bx - BCX;
+    // Shadow center: slide toward disc center as bob rises
+    const progress = Math.max(0, Math.min(1, (by - PY) / (SEP - PY)));
+    const sx = BCX + wx * 0.45 * progress;
+    const sy = BCY - BR_Y * 0.18 + wx * TILT * 0.22 * progress;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(sx, sy, 14 * progress + 4, (14 * progress + 4) * TILT * 0.7,
+                0, 0, Math.PI * 2);
+    const sg = ctx.createRadialGradient(sx, sy, 0, sx, sy, 16);
+    sg.addColorStop(0,   `rgba(0,0,0,${0.35 * progress})`);
+    sg.addColorStop(1,   'rgba(0,0,0,0)');
+    ctx.fillStyle = sg;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // ③ Marble reflection — flipped disc mirrored below the real disc
+  function drawDiscReflection() {
+    // Reflection sits just below the disc front edge
+    const refY = BCY + BR_Y + RIM_H + 2;
+    const refH = BR_Y * 1.8;   // vertical extent of reflection
+
+    ctx.save();
+    // Clip to floor area only
+    ctx.beginPath();
+    ctx.rect(0, SEP, W, H - SEP);
+    ctx.clip();
+
+    // Flip vertically around refY
+    ctx.translate(BCX, refY);
+    ctx.scale(1, -1);
+
+    // Draw a faded, compressed copy of the disc
+    const pg = ctx.createRadialGradient(
+      -BR_X * 0.2, -BR_Y * 0.2, BR_X * 0.05,
+      BR_X * 0.08,  BR_Y * 0.08, BR_X * 1.1
+    );
+    pg.addColorStop(0,    'rgba(220,196,130,0.18)');
+    pg.addColorStop(0.5,  'rgba(180,148, 90,0.10)');
+    pg.addColorStop(1,    'rgba( 80, 50, 20,0)');
+
+    ctx.beginPath();
+    ctx.ellipse(0, 0, BR_X * 0.90, BR_Y * 0.90, 0, 0, Math.PI * 2);
+    ctx.fillStyle = pg;
+    ctx.fill();
+
+    // Rim highlight in reflection
+    ctx.beginPath();
+    ctx.ellipse(0, 0, BR_X * 0.90, BR_Y * 0.90, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(180,130,50,0.10)';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    ctx.restore();
+
+    // Fade-out mask over reflection (top bright → bottom transparent)
+    const fade = ctx.createLinearGradient(0, refY, 0, refY + refH);
+    fade.addColorStop(0,   'rgba(0,0,0,0)');
+    fade.addColorStop(1,   'rgba(0,0,0,0.92)');
+    ctx.fillStyle = fade;
+    ctx.fillRect(BCX - BR_X * 1.1, refY, BR_X * 2.2, refH);
+  }
+
   function drawDisc3D() {
     const rimGrad = ctx.createLinearGradient(BCX, BCY + BR_Y,
                                              BCX, BCY + BR_Y + RIM_H);
@@ -615,20 +702,37 @@
   // ──────────────────────────────────────────────────────────
   function render() {
     ctx.clearRect(0, 0, W, H);
+
+    // 1. Static texture (stone wall + marble floor)
     ctx.drawImage(texC, 0, 0);
+
+    // 2. Marble reflection (below disc, on floor)
+    drawDiscReflection();
+
+    // 3. Disc glow halo
+    drawDiscGlow();
+
+    // 4. 3-D disc body
     drawDisc3D();
+
+    // 5. Sand trail + compass rose
     ctx.drawImage(sandC, 0, 0);
 
+    // 6. Current bob
     const bob = bobPos(simTime);
     emitSand(bob, simTime);
-
     for (const p of particles) {
       if (!p.done) stepParticle(p, 1 / 60);
     }
 
+    // 7. Bob shadow on disc surface
+    drawBobShadow(bob.x, bob.y);
+
+    // 8. Wire & pivot
     drawWire(bob.x, bob.y, bob.prec);
     drawPivot();
 
+    // 9. Falling particles (clipped to upper chamber)
     ctx.save();
     ctx.beginPath();
     ctx.rect(0, 0, W, SEP);
@@ -642,6 +746,7 @@
     }
     ctx.restore();
 
+    // 10. Bob (topmost)
     drawBob(bob.x, bob.y, bob.depth);
   }
 
