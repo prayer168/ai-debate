@@ -96,6 +96,28 @@
       padding-top: 10px;
       margin-top: 14px;
     }
+    .reset-btn {
+      width: 100%;
+      margin-top: 12px;
+      background: none;
+      border: 1px solid #5a3412;
+      color: #9a6030;
+      font-family: Georgia, serif;
+      font-size: 10px;
+      letter-spacing: 3px;
+      padding: 6px 0;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.2s;
+    }
+    .reset-btn:hover {
+      border-color: #a05820;
+      color: #d4803a;
+      background: rgba(80,30,5,0.22);
+    }
+    .reset-btn:active {
+      background: rgba(80,30,5,0.40);
+    }
     .prec-info {
       color: #6a4820;
       font-size: 9px;
@@ -128,6 +150,7 @@
         Précession accéléréе<br>
         <span style="color:#4a3010">地球自轉效應</span>
       </div>
+      <button class="reset-btn" id="resetBtn">↺ 重置</button>
     </div>
   </div>
 </div>
@@ -567,6 +590,11 @@
       <span class="lat-badge">${city.lat}°N</span>`;
     btn.addEventListener('click', () => selectCity(i));
     cityList.appendChild(btn);
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    resetSand();
+    particles = [];
   });
 
   // Init precInfo
