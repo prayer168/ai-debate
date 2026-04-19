@@ -7,7 +7,7 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      background: #0c0806;
+      background: #0a0704;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -17,117 +17,209 @@
     .wrapper {
       display: flex;
       align-items: stretch;
-      gap: 20px;
+      gap: 18px;
     }
     canvas {
       display: block;
       flex-shrink: 0;
-      box-shadow: 0 0 60px rgba(0,0,0,0.9), 0 0 20px rgba(100,60,10,0.12);
+      box-shadow: 0 0 60px rgba(0,0,0,0.92), 0 0 20px rgba(100,60,10,0.12);
     }
+
+    /* ── Sidebar shell ── */
     .sidebar {
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      width: 160px;
-      padding: 6px 0;
+      width: 168px;
+      padding: 0;
+      gap: 0;
+      border: 1px solid #2e1c0a;
+      background: linear-gradient(180deg, #100c06 0%, #0c0906 100%);
+      box-shadow: inset 0 0 18px rgba(0,0,0,0.6);
     }
-    .side-title {
-      color: #c0a050;
-      font-size: 11px;
-      letter-spacing: 4px;
-      text-transform: uppercase;
-      line-height: 1.7;
-      border-bottom: 1px solid #3a2410;
-      padding-bottom: 10px;
-      margin-bottom: 14px;
+
+    /* ── Section block ── */
+    .sb-section {
+      padding: 11px 12px;
+      border-bottom: 1px solid #251408;
     }
-    .side-title span {
-      display: block;
-      color: #7a5828;
-      font-size: 9px;
-      letter-spacing: 2px;
-      margin-top: 2px;
-    }
-    .city-label {
-      color: #9a7840;
+    .sb-section:last-child { border-bottom: none; }
+
+    /* ornament divider */
+    .ornament {
+      text-align: center;
+      color: #3e2410;
       font-size: 9px;
       letter-spacing: 3px;
-      text-transform: uppercase;
-      margin-bottom: 8px;
+      margin: 2px 0 8px;
+      user-select: none;
     }
+
+    /* ── Title ── */
+    .title-main {
+      color: #c8a852;
+      font-size: 10.5px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      line-height: 1.55;
+    }
+    .title-sub {
+      color: #6a4a1e;
+      font-size: 8.5px;
+      letter-spacing: 2px;
+      margin-top: 3px;
+    }
+
+    /* ── Description text ── */
+    .desc {
+      color: #7a5a2a;
+      font-size: 8.5px;
+      line-height: 1.75;
+      letter-spacing: 0.4px;
+    }
+    .desc em {
+      color: #a07838;
+      font-style: italic;
+    }
+
+    /* ── Section label ── */
+    .sb-label {
+      color: #7a5828;
+      font-size: 8px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 7px;
+    }
+
+    /* ── City buttons ── */
     .city-list {
       display: flex;
       flex-direction: column;
-      gap: 5px;
-      flex: 1;
+      gap: 4px;
     }
     .city-btn {
       background: none;
-      border: 1px solid #3a2410;
-      color: #9a7238;
+      border: 1px solid #2c1808;
+      color: #8a6830;
       font-family: Georgia, serif;
-      font-size: 11px;
-      padding: 5px 9px;
+      font-size: 10.5px;
+      padding: 4px 8px;
       text-align: left;
       cursor: pointer;
-      transition: all 0.2s;
-      letter-spacing: 1px;
-      position: relative;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      letter-spacing: 0.5px;
     }
     .city-btn:hover {
-      border-color: #8a5828;
-      color: #d4a050;
-      background: rgba(80,40,10,0.18);
+      border-color: #7a4818;
+      color: #c8903a;
+      background: rgba(70,35,8,0.22);
     }
     .city-btn.active {
-      border-color: #b07830;
-      color: #e0b860;
-      background: rgba(80,40,10,0.28);
+      border-color: #a06820;
+      color: #dca848;
+      background: rgba(70,35,8,0.32);
     }
     .city-btn .lat-badge {
       float: right;
-      font-size: 9px;
-      color: #6a4820;
+      font-size: 8px;
+      color: #4e3010;
       margin-top: 1px;
     }
-    .city-btn.active .lat-badge { color: #a07030; }
-    .side-footer {
-      border-top: 1px solid #3a2410;
-      padding-top: 10px;
-      margin-top: 14px;
+    .city-btn.active .lat-badge { color: #8a6020; }
+
+    /* ── Stats row ── */
+    .stats-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 4px;
     }
+    .stat-key {
+      color: #5a3a14;
+      font-size: 8px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+    .stat-val {
+      color: #b08030;
+      font-size: 10px;
+      letter-spacing: 1px;
+    }
+
+    /* ── Controls ── */
+    .ctrl-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 9px;
+    }
+    .ctrl-btn {
+      flex: 1;
+      background: none;
+      border: 1px solid #3a2010;
+      color: #8a6030;
+      font-family: Georgia, serif;
+      font-size: 13px;
+      padding: 5px 0;
+      cursor: pointer;
+      transition: all 0.15s;
+      line-height: 1;
+    }
+    .ctrl-btn:hover  { border-color: #8a5020; color: #c8802a; background: rgba(70,30,5,0.20); }
+    .ctrl-btn:active { background: rgba(70,30,5,0.40); }
+    .ctrl-btn.paused { color: #d4a040; border-color: #9a7020; }
+
+    /* ── Speed slider ── */
+    .speed-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .speed-label {
+      color: #5a3a14;
+      font-size: 8px;
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+    input[type=range] {
+      -webkit-appearance: none;
+      flex: 1;
+      height: 2px;
+      background: #2e1808;
+      outline: none;
+      border-radius: 1px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #a07030;
+      cursor: pointer;
+      border: 1px solid #6a4010;
+      transition: background 0.15s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover { background: #c89040; }
+    .speed-val {
+      color: #8a6030;
+      font-size: 8.5px;
+      width: 22px;
+      text-align: right;
+    }
+
+    /* ── Reset button ── */
     .reset-btn {
       width: 100%;
-      margin-top: 12px;
       background: none;
-      border: 1px solid #5a3412;
-      color: #9a6030;
+      border: 1px solid #3a2010;
+      color: #7a5028;
       font-family: Georgia, serif;
-      font-size: 10px;
+      font-size: 9px;
       letter-spacing: 3px;
       padding: 6px 0;
       cursor: pointer;
       text-transform: uppercase;
-      transition: all 0.2s;
+      transition: all 0.15s;
     }
-    .reset-btn:hover {
-      border-color: #a05820;
-      color: #d4803a;
-      background: rgba(80,30,5,0.22);
-    }
-    .reset-btn:active {
-      background: rgba(80,30,5,0.40);
-    }
-    .prec-info {
-      color: #6a4820;
-      font-size: 9px;
-      letter-spacing: 2px;
-      line-height: 1.8;
-    }
-    .prec-val {
-      color: #a07030;
-      font-size: 10px;
-    }
+    .reset-btn:hover  { border-color: #9a5818; color: #c87030; background: rgba(70,25,5,0.20); }
+    .reset-btn:active { background: rgba(70,25,5,0.40); }
   </style>
 </head>
 <body>
@@ -135,23 +227,66 @@
   <canvas id="c"></canvas>
 
   <div class="sidebar">
-    <div>
-      <div class="side-title">
-        Pendule de Foucault
-        <span>傅科摆  ·  Foucault Pendulum</span>
+
+    <!-- Title -->
+    <div class="sb-section">
+      <div class="title-main">Pendule de<br>Foucault</div>
+      <div class="title-sub">傅科摆 · Foucault Pendulum</div>
+    </div>
+
+    <!-- Description -->
+    <div class="sb-section">
+      <div class="ornament">· · ·</div>
+      <div class="desc">
+        1851年，傅科於巴黎先賢祠<br>
+        以長 67 m 的鉛錘，<br>
+        首次直接證明<em>地球自轉</em>。<br><br>
+        擺動平面在慣性空間中<br>
+        保持不變；地球在其下方<br>
+        緩緩轉動，沙痕因此<br>
+        形成<em>旋轉花紋</em>。<br><br>
+        進動週期 T = 24h / sin φ<br>
+        φ = 當地緯度
       </div>
-      <div class="city-label">城市 / Location</div>
+    </div>
+
+    <!-- City selector -->
+    <div class="sb-section" style="flex:1; overflow:hidden;">
+      <div class="sb-label">城市 / Location</div>
       <div class="city-list" id="cityList"></div>
     </div>
-    <div class="side-footer">
-      <div class="prec-info">
-        緯度進動速率<br>
-        <span class="prec-val" id="precInfo">— rpm</span><br><br>
-        Précession accéléréе<br>
-        <span style="color:#4a3010">地球自轉效應</span>
+
+    <!-- Stats -->
+    <div class="sb-section">
+      <div class="ornament">· · ·</div>
+      <div class="stats-row">
+        <span class="stat-key">緯度</span>
+        <span class="stat-val" id="statLat">—</span>
       </div>
-      <button class="reset-btn" id="resetBtn">↺ 重置</button>
+      <div class="stats-row">
+        <span class="stat-key">進動</span>
+        <span class="stat-val" id="statRpm">— rpm</span>
+      </div>
+      <div class="stats-row">
+        <span class="stat-key">週期</span>
+        <span class="stat-val" id="statPeriod">— h</span>
+      </div>
     </div>
+
+    <!-- Controls: pause + speed -->
+    <div class="sb-section">
+      <div class="sb-label">控制 / Controls</div>
+      <div class="ctrl-row">
+        <button class="ctrl-btn" id="pauseBtn" title="暫停/播放">⏸</button>
+        <button class="reset-btn" id="resetBtn" style="flex:1;margin:0;font-size:9px">↺ 重置</button>
+      </div>
+      <div class="speed-row">
+        <span class="speed-label">速度</span>
+        <input type="range" id="speedSlider" min="0.25" max="4" step="0.25" value="1">
+        <span class="speed-val" id="speedVal">×1</span>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -863,53 +998,87 @@
   }
 
   // ──────────────────────────────────────────────────────────
+  //  PLAYBACK STATE
+  // ──────────────────────────────────────────────────────────
+  let paused    = false;
+  let speedMult = 1.0;
+
+  // ──────────────────────────────────────────────────────────
   //  CITY UI
   // ──────────────────────────────────────────────────────────
-  const cityList = document.getElementById('cityList');
-  const precInfo = document.getElementById('precInfo');
+  const cityListEl = document.getElementById('cityList');
+
+  function updateStats(city) {
+    const rpm   = currentPrecRate * 60 / (2 * Math.PI);
+    const realH = 24 / Math.sin(city.lat * Math.PI / 180);
+    document.getElementById('statLat').textContent    = `${city.lat}°N`;
+    document.getElementById('statRpm').textContent    = `${rpm.toFixed(2)} rpm`;
+    document.getElementById('statPeriod').textContent =
+      realH > 999 ? '∞' : `${realH.toFixed(1)} h`;
+  }
 
   function selectCity(idx) {
-    currentCity = idx;
-    const city = CITIES[idx];
+    currentCity     = idx;
+    const city      = CITIES[idx];
     currentPrecRate = cityPrecRate(city.lat);
-    // Clear sand trail and redraw compass
     resetSand();
     particles = [];
-    // Update UI
-    document.querySelectorAll('.city-btn').forEach((btn, i) => {
-      btn.classList.toggle('active', i === idx);
-    });
-    const rpm = (currentPrecRate * 60 / (2 * Math.PI)).toFixed(2);
-    precInfo.textContent = `${rpm} rpm`;
+    document.querySelectorAll('.city-btn').forEach((btn, i) =>
+      btn.classList.toggle('active', i === idx));
+    updateStats(city);
   }
 
   CITIES.forEach((city, i) => {
     const btn = document.createElement('button');
     btn.className = 'city-btn' + (i === 0 ? ' active' : '');
-    btn.innerHTML = `${city.name}${city.country ? ' <small style="color:#5a3c18;font-size:8px">${city.country}</small>' : ''}
-      <span class="lat-badge">${city.lat}°N</span>`;
+    btn.innerHTML =
+      `${city.name}${city.country
+        ? ` <small style="color:#4a3010;font-size:7.5px">${city.country}</small>`
+        : ''}<span class="lat-badge">${city.lat}°</span>`;
     btn.addEventListener('click', () => selectCity(i));
-    cityList.appendChild(btn);
+    cityListEl.appendChild(btn);
   });
 
+  updateStats(CITIES[0]);
+
+  // ── Pause / Play ───────────────────────────────────────────
+  const pauseBtn = document.getElementById('pauseBtn');
+  pauseBtn.addEventListener('click', () => {
+    paused = !paused;
+    pauseBtn.textContent = paused ? '▶' : '⏸';
+    pauseBtn.classList.toggle('paused', paused);
+    if (!paused) lastTS = null;
+  });
+
+  // ── Speed slider ───────────────────────────────────────────
+  const speedSlider = document.getElementById('speedSlider');
+  const speedValEl  = document.getElementById('speedVal');
+  speedSlider.addEventListener('input', () => {
+    speedMult = parseFloat(speedSlider.value);
+    const label = speedMult === Math.round(speedMult)
+      ? `×${speedMult}`
+      : `×${speedMult.toFixed(2)}`;
+    speedValEl.textContent = label;
+  });
+
+  // ── Reset ──────────────────────────────────────────────────
   document.getElementById('resetBtn').addEventListener('click', () => {
     resetSand();
     particles = [];
   });
 
-  // Init precInfo
-  const initRpm = (currentPrecRate * 60 / (2 * Math.PI)).toFixed(2);
-  precInfo.textContent = `${initRpm} rpm`;
-
   // ──────────────────────────────────────────────────────────
   //  ANIMATION LOOP
   // ──────────────────────────────────────────────────────────
   function loop(ts) {
-    if (lastTS === null) lastTS = ts;
-    const dt = Math.min((ts - lastTS) / 1000, 0.05);
-    lastTS = ts;
-    simTime += dt;
-    render();
+    if (!paused) {
+      if (lastTS === null) lastTS = ts;
+      const raw = Math.min((ts - lastTS) / 1000, 0.05);
+      const dt  = raw * speedMult;
+      simTime  += dt;
+      render();
+    }
+    lastTS = paused ? null : ts;
     requestAnimationFrame(loop);
   }
 
