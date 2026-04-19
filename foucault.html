@@ -3,506 +3,589 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>傅科摆 — Foucault Pendulum · 台南</title>
+  <title>傅科摆 — Foucault Pendulum</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       background: #0c0806;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
       font-family: Georgia, 'Times New Roman', serif;
     }
-    .label-top {
-      color: #c0a050;
-      font-size: 12px;
-      letter-spacing: 5px;
-      text-transform: uppercase;
-      margin-bottom: 12px;
-      opacity: 0.9;
+    .wrapper {
+      display: flex;
+      align-items: stretch;
+      gap: 20px;
     }
     canvas {
       display: block;
-      box-shadow: 0 0 80px rgba(0,0,0,0.9), 0 0 25px rgba(100,60,10,0.15);
+      flex-shrink: 0;
+      box-shadow: 0 0 60px rgba(0,0,0,0.9), 0 0 20px rgba(100,60,10,0.12);
     }
-    .label-bot {
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      width: 160px;
+      padding: 6px 0;
+    }
+    .side-title {
+      color: #c0a050;
+      font-size: 11px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      line-height: 1.7;
+      border-bottom: 1px solid #3a2410;
+      padding-bottom: 10px;
+      margin-bottom: 14px;
+    }
+    .side-title span {
+      display: block;
       color: #7a5828;
-      font-size: 10px;
+      font-size: 9px;
+      letter-spacing: 2px;
+      margin-top: 2px;
+    }
+    .city-label {
+      color: #9a7840;
+      font-size: 9px;
       letter-spacing: 3px;
-      margin-top: 10px;
-      opacity: 0.75;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .city-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      flex: 1;
+    }
+    .city-btn {
+      background: none;
+      border: 1px solid #3a2410;
+      color: #9a7238;
+      font-family: Georgia, serif;
+      font-size: 11px;
+      padding: 5px 9px;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 1px;
+      position: relative;
+    }
+    .city-btn:hover {
+      border-color: #8a5828;
+      color: #d4a050;
+      background: rgba(80,40,10,0.18);
+    }
+    .city-btn.active {
+      border-color: #b07830;
+      color: #e0b860;
+      background: rgba(80,40,10,0.28);
+    }
+    .city-btn .lat-badge {
+      float: right;
+      font-size: 9px;
+      color: #6a4820;
+      margin-top: 1px;
+    }
+    .city-btn.active .lat-badge { color: #a07030; }
+    .side-footer {
+      border-top: 1px solid #3a2410;
+      padding-top: 10px;
+      margin-top: 14px;
+    }
+    .prec-info {
+      color: #6a4820;
+      font-size: 9px;
+      letter-spacing: 2px;
+      line-height: 1.8;
+    }
+    .prec-val {
+      color: #a07030;
+      font-size: 10px;
     }
   </style>
 </head>
 <body>
-  <div class="label-top">Pendule de Foucault &nbsp;·&nbsp; 台南 23°N</div>
+<div class="wrapper">
   <canvas id="c"></canvas>
-  <div class="label-bot">Précession · 3 rev/min &nbsp;(accéléré)</div>
 
-  <script>
-    // ── Canvas ─────────────────────────────────────────────────
-    const c   = document.getElementById('c');
-    const ctx = c.getContext('2d');
-    const W = 480, H = 700;
-    c.width = W; c.height = H;
+  <div class="sidebar">
+    <div>
+      <div class="side-title">
+        Pendule de Foucault
+        <span>傅科摆  ·  Foucault Pendulum</span>
+      </div>
+      <div class="city-label">城市 / Location</div>
+      <div class="city-list" id="cityList"></div>
+    </div>
+    <div class="side-footer">
+      <div class="prec-info">
+        緯度進動速率<br>
+        <span class="prec-val" id="precInfo">— rpm</span><br><br>
+        Précession accéléréе<br>
+        <span style="color:#4a3010">地球自轉效應</span>
+      </div>
+    </div>
+  </div>
+</div>
 
-    // ── Layout ─────────────────────────────────────────────────
-    const PX    = W / 2;   // pivot x
-    const PY    = 30;      // pivot y
-    const WIRE  = 300;     // visual wire length
-    const SEP   = 405;     // upper/lower boundary y
-    const BCX   = W / 2;   // base plate center x
-    const BCY   = 558;     // base plate center y (perspective center)
+<script>
+  // ── Cities ─────────────────────────────────────────────────
+  const CITIES = [
+    { name: '台南',   country: '台灣',  lat: 23.0 },
+    { name: '台北',   country: '台灣',  lat: 25.0 },
+    { name: '東京',   country: '日本',  lat: 35.7 },
+    { name: '北京',   country: '中國',  lat: 39.9 },
+    { name: '巴黎',   country: '法國',  lat: 48.9 },
+    { name: '倫敦',   country: '英國',  lat: 51.5 },
+    { name: '赫爾辛基', country:'芬蘭', lat: 60.2 },
+    { name: '北極點', country: '',      lat: 90.0 },
+  ];
 
-    // 3-D perspective parameters for the disc
-    // TILT = sin(elevation angle) — how compressed the depth axis appears
-    const TILT  = 0.40;    // ~24° elevation angle
-    const BR_X  = 155;     // disc horizontal radius (px)
-    const BR_Y  = BR_X * TILT;  // disc depth radius (px) — ellipse minor axis
-    const RIM_H = 13;      // visible rim thickness at front of disc
+  // Precession rate: real physics sin(lat) scaling,
+  // anchored so 台南(23°N) = 2.0 rpm in animation
+  const BASE_RPM = 2.0;
+  const BASE_SIN = Math.sin(23 * Math.PI / 180);
+  function cityPrecRate(lat) {
+    return (BASE_RPM * Math.sin(lat * Math.PI / 180) / BASE_SIN)
+           * (2 * Math.PI / 60);
+  }
 
-    const TRAIL_R = BR_X * 0.66;  // max sand trail radius (world units)
+  let currentCity = 0;
+  let currentPrecRate = cityPrecRate(CITIES[0].lat);
 
-    // ── Physics ────────────────────────────────────────────────
-    // Period 4s × 3 rpm → 5 oscillations / rotation = 5-pointed star
-    const T_PEND    = 4.0;
-    const OMEGA     = (2 * Math.PI) / T_PEND;
-    const SWING_AMP = 0.26;   // radians
-    const PREC_RATE = (3 * 2 * Math.PI) / 60;  // rad/s
+  // ── Canvas ─────────────────────────────────────────────────
+  const c   = document.getElementById('c');
+  const ctx = c.getContext('2d');
+  const W = 260, H = 380;
+  c.width = W; c.height = H;
 
-    // ── Coordinate helper: world-XZ → screen-XY ────────────────
-    // World X = left-right  (maps 1:1 to screen X)
-    // World Z = front-back  (maps to screen Y via TILT)
-    // Z < 0 → back of plate  → top of ellipse (lower screen y)
-    // Z > 0 → front of plate → bottom of ellipse (higher screen y)
-    function w2s(wx, wz) {
-      return { x: BCX + wx, y: BCY + wz * TILT };
+  // ── Layout ─────────────────────────────────────────────────
+  const PX    = W / 2;
+  const PY    = 18;
+  const WIRE  = 168;
+  const SEP   = 220;
+  const BCX   = W / 2;
+  const BCY   = 308;
+  const TILT  = 0.40;
+  const BR_X  = 88;
+  const BR_Y  = BR_X * TILT;
+  const RIM_H = 8;
+  const TRAIL_R = BR_X * 0.66;
+
+  // ── Physics ────────────────────────────────────────────────
+  const T_PEND    = 4.0;
+  const OMEGA     = (2 * Math.PI) / T_PEND;
+  const SWING_AMP = 0.26;
+
+  // ── Coordinate helper ──────────────────────────────────────
+  function w2s(wx, wz) {
+    return { x: BCX + wx, y: BCY + wz * TILT };
+  }
+
+  // ── Offscreen: static texture ──────────────────────────────
+  const texC = document.createElement('canvas');
+  texC.width = W; texC.height = H;
+  buildTexture(texC.getContext('2d'));
+
+  // ── Offscreen: persistent sand trail ──────────────────────
+  const sandC = document.createElement('canvas');
+  sandC.width = W; sandC.height = H;
+  const sandX = sandC.getContext('2d');
+
+  function resetSand() {
+    sandX.clearRect(0, 0, W, H);
+    drawCompassRose(sandX);
+  }
+  resetSand();
+
+  // ── State ──────────────────────────────────────────────────
+  let simTime = 0, lastTS = null;
+  let particles = [];
+  let frameN = 0;
+
+  // ──────────────────────────────────────────────────────────
+  //  TEXTURE
+  // ──────────────────────────────────────────────────────────
+  function buildTexture(tx) {
+    tx.fillStyle = '#262016';
+    tx.fillRect(0, 0, W, SEP);
+    const img1 = tx.getImageData(0, 0, W, SEP);
+    const d1 = img1.data;
+    for (let i = 0; i < d1.length; i += 4) {
+      const n = (Math.random() * 26) | 0;
+      d1[i]   = Math.min(255, d1[i]   + n);
+      d1[i+1] = Math.min(255, d1[i+1] + ((n * 0.78) | 0));
+      d1[i+2] = Math.min(255, d1[i+2] + ((n * 0.48) | 0));
+      d1[i+3] = 255;
+    }
+    tx.putImageData(img1, 0, 0);
+
+    const vig = tx.createRadialGradient(PX, SEP*0.42, SEP*0.08,
+                                         PX, SEP*0.42, SEP*0.94);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.55)');
+    tx.fillStyle = vig;
+    tx.fillRect(0, 0, W, SEP);
+
+    tx.fillStyle = '#806040';
+    tx.fillRect(0, SEP, W, H - SEP);
+    const img2 = tx.getImageData(0, SEP, W, H - SEP);
+    const d2 = img2.data;
+    for (let i = 0; i < d2.length; i += 4) {
+      const v = ((Math.random() * 18) | 0) - 9;
+      d2[i]   = Math.max(0, Math.min(255, d2[i]   + v));
+      d2[i+1] = Math.max(0, Math.min(255, d2[i+1] + v));
+      d2[i+2] = Math.max(0, Math.min(255, d2[i+2] + v - 5));
+      d2[i+3] = 255;
+    }
+    tx.putImageData(img2, 0, SEP);
+
+    tx.fillStyle = '#100c08';
+    tx.fillRect(0, SEP - 4, W, 8);
+    tx.fillStyle = '#5a3412';
+    tx.fillRect(0, SEP - 1, W, 2);
+  }
+
+  // ──────────────────────────────────────────────────────────
+  //  COMPASS ROSE
+  // ──────────────────────────────────────────────────────────
+  function drawCompassRose(sx) {
+    sx.save();
+    const R = BR_X * 0.86;
+
+    sx.strokeStyle = '#7a5530';
+    sx.globalAlpha = 0.30;
+    sx.lineWidth   = 0.7;
+    [R, R * 0.60, R * 0.23].forEach(r => {
+      sx.beginPath();
+      sx.ellipse(BCX, BCY, r, r * TILT, 0, 0, Math.PI * 2);
+      sx.stroke();
+    });
+
+    for (let i = 0; i < 16; i++) {
+      const a     = (i * Math.PI) / 8;
+      const inner = i % 4 === 0 ? 0 : i % 2 === 0 ? R * 0.23 : R * 0.41;
+      const p0 = w2s(inner * Math.cos(a), inner * Math.sin(a));
+      const p1 = w2s(R     * Math.cos(a), R     * Math.sin(a));
+      sx.beginPath();
+      sx.moveTo(p0.x, p0.y);
+      sx.lineTo(p1.x, p1.y);
+      sx.stroke();
     }
 
-    // ── Offscreen: static texture ──────────────────────────────
-    const texC = document.createElement('canvas');
-    texC.width = W; texC.height = H;
-    buildTexture(texC.getContext('2d'));
-
-    // ── Offscreen: persistent sand trail ──────────────────────
-    const sandC = document.createElement('canvas');
-    sandC.width = W; sandC.height = H;
-    const sandX = sandC.getContext('2d');
-    drawCompassRose(sandX);   // engraved once beneath sand
-
-    // ── State ──────────────────────────────────────────────────
-    let simTime = 0, lastTS = null;
-    let particles = [];
-    let frameN = 0;
-
-    // ──────────────────────────────────────────────────────────
-    //  TEXTURE  (pre-generated, never redrawn each frame)
-    // ──────────────────────────────────────────────────────────
-    function buildTexture(tx) {
-      // Upper: dark stone wall
-      tx.fillStyle = '#282016';
-      tx.fillRect(0, 0, W, SEP);
-      const img1 = tx.getImageData(0, 0, W, SEP);
-      const d1 = img1.data;
-      for (let i = 0; i < d1.length; i += 4) {
-        const n = (Math.random() * 26) | 0;
-        d1[i]   = Math.min(255, d1[i]   + n);
-        d1[i+1] = Math.min(255, d1[i+1] + ((n * 0.80) | 0));
-        d1[i+2] = Math.min(255, d1[i+2] + ((n * 0.50) | 0));
-        d1[i+3] = 255;
-      }
-      tx.putImageData(img1, 0, 0);
-
-      // Vignette: darker edges around upper area
-      const vig = tx.createRadialGradient(PX, SEP * 0.44, SEP * 0.10,
-                                           PX, SEP * 0.44, SEP * 0.92);
-      vig.addColorStop(0, 'rgba(0,0,0,0)');
-      vig.addColorStop(1, 'rgba(0,0,0,0.52)');
-      tx.fillStyle = vig;
-      tx.fillRect(0, 0, W, SEP);
-
-      // Lower: warm stone floor
-      tx.fillStyle = '#8a6a40';
-      tx.fillRect(0, SEP, W, H - SEP);
-      const img2 = tx.getImageData(0, SEP, W, H - SEP);
-      const d2 = img2.data;
-      for (let i = 0; i < d2.length; i += 4) {
-        const v = ((Math.random() * 18) | 0) - 9;
-        d2[i]   = Math.max(0, Math.min(255, d2[i]   + v));
-        d2[i+1] = Math.max(0, Math.min(255, d2[i+1] + v));
-        d2[i+2] = Math.max(0, Math.min(255, d2[i+2] + v - 5));
-        d2[i+3] = 255;
-      }
-      tx.putImageData(img2, 0, SEP);
-
-      // Separator bar
-      tx.fillStyle = '#100c08';
-      tx.fillRect(0, SEP - 5, W, 10);
-      tx.fillStyle = '#6a3e18';
-      tx.fillRect(0, SEP - 1, W, 2);
+    sx.globalAlpha = 0.16;
+    sx.lineWidth = 0.5;
+    for (let i = 0; i < 72; i++) {
+      if (i % (72 / 16) < 0.5) continue;
+      const a  = (i * 2 * Math.PI) / 72;
+      const ri = R * (i % 2 === 0 ? 0.90 : 0.94);
+      const p0 = w2s(ri * Math.cos(a), ri * Math.sin(a));
+      const p1 = w2s(R  * Math.cos(a), R  * Math.sin(a));
+      sx.beginPath();
+      sx.moveTo(p0.x, p0.y);
+      sx.lineTo(p1.x, p1.y);
+      sx.stroke();
     }
 
-    // ──────────────────────────────────────────────────────────
-    //  COMPASS ROSE  (perspective — drawn on sand layer once)
-    // ──────────────────────────────────────────────────────────
-    function drawCompassRose(sx) {
-      sx.save();
-      const R = BR_X * 0.87;
+    sx.globalAlpha = 0.44;
+    sx.fillStyle   = '#7a5530';
+    sx.font        = `bold 8px Georgia`;
+    sx.textAlign    = 'center';
+    sx.textBaseline = 'middle';
+    const rT = R * 0.76;
+    [['N', w2s(0, -rT)], ['S', w2s(0, rT)],
+     ['E', w2s(rT, 0)],  ['W', w2s(-rT, 0)]].forEach(([l, p]) => {
+      sx.fillText(l, p.x, p.y);
+    });
 
-      // Concentric ellipses (circles projected into perspective)
-      sx.strokeStyle = '#7a5530';
-      sx.globalAlpha = 0.30;
-      sx.lineWidth   = 0.8;
-      [R, R * 0.60, R * 0.23].forEach(r => {
-        sx.beginPath();
-        sx.ellipse(BCX, BCY, r, r * TILT, 0, 0, Math.PI * 2);
-        sx.stroke();
-      });
+    sx.restore();
+  }
 
-      // 16 radial lines (projected)
-      for (let i = 0; i < 16; i++) {
-        const a     = (i * Math.PI) / 8;
-        const inner = i % 4 === 0 ? 0
-                    : i % 2 === 0 ? R * 0.23
-                    : R * 0.41;
-        const p0 = w2s(inner * Math.cos(a), inner * Math.sin(a));
-        const p1 = w2s(R     * Math.cos(a), R     * Math.sin(a));
-        sx.beginPath();
-        sx.moveTo(p0.x, p0.y);
-        sx.lineTo(p1.x, p1.y);
-        sx.stroke();
-      }
+  // ──────────────────────────────────────────────────────────
+  //  PENDULUM MATH
+  // ──────────────────────────────────────────────────────────
+  function bobPos(t) {
+    const swing = SWING_AMP * Math.sin(OMEGA * t);
+    const prec  = currentPrecRate * t;
+    return {
+      x:     PX   + WIRE * Math.sin(swing) * Math.cos(prec),
+      y:     PY   + WIRE * Math.cos(swing),
+      vx:    WIRE * SWING_AMP * OMEGA * Math.cos(OMEGA * t) * Math.cos(prec),
+      prec,
+      depth: Math.sin(prec)
+    };
+  }
 
-      // Fine tick marks
-      sx.globalAlpha = 0.18;
-      sx.lineWidth   = 0.5;
-      for (let i = 0; i < 72; i++) {
-        if (i % (72 / 16) < 0.5) continue;
-        const a  = (i * Math.PI * 2) / 72;
-        const ri = R * (i % 2 === 0 ? 0.90 : 0.94);
-        const p0 = w2s(ri * Math.cos(a), ri * Math.sin(a));
-        const p1 = w2s(R  * Math.cos(a), R  * Math.sin(a));
-        sx.beginPath();
-        sx.moveTo(p0.x, p0.y);
-        sx.lineTo(p1.x, p1.y);
-        sx.stroke();
-      }
+  function sandDest(t) {
+    const prec = currentPrecRate * t;
+    const s    = Math.sin(OMEGA * t);
+    return w2s(TRAIL_R * Math.cos(prec) * s,
+               TRAIL_R * Math.sin(prec) * s);
+  }
 
-      // Cardinal letters (N = back/top, S = front/bottom)
-      sx.globalAlpha = 0.45;
-      sx.fillStyle   = '#7a5530';
-      sx.font        = `bold ${Math.max(10, (R * TILT * 0.30) | 0)}px Georgia`;
-      sx.textAlign    = 'center';
-      sx.textBaseline = 'middle';
-      const rT = R * 0.76;
-      [['N', w2s(0, -rT)], ['S', w2s(0, rT)],
-       ['E', w2s(rT, 0)],  ['W', w2s(-rT, 0)]].forEach(([l, p]) => {
-        sx.fillText(l, p.x, p.y);
-      });
+  // ──────────────────────────────────────────────────────────
+  //  SAND PARTICLES
+  // ──────────────────────────────────────────────────────────
+  function makeParticle(bx, by, bvx, dst) {
+    const r = (50  + (Math.random() * 30) | 0);
+    const g = (30  + (Math.random() * 18) | 0);
+    const b = (10  + (Math.random() * 12) | 0);
+    return {
+      x: bx + (Math.random() - 0.5) * 4,
+      y: by + 16,
+      vx: bvx * 0.15 + (Math.random() - 0.5) * 18,
+      vy: Math.random() * 20 + 6,
+      r:  Math.random() * 1.2 + 0.4,
+      col: `rgba(${r},${g},${b},0.92)`,
+      dstX: dst.x + (Math.random() - 0.5) * 4,
+      dstY: dst.y + (Math.random() - 0.5) * 4,
+      done: false
+    };
+  }
 
-      sx.restore();
+  function stepParticle(p, dt) {
+    p.vy += 280 * dt;
+    p.x  += p.vx * dt;
+    p.y  += p.vy * dt;
+    if (p.y >= SEP + 2) {
+      p.done = true;
+      sandX.save();
+      sandX.beginPath();
+      sandX.ellipse(BCX, BCY, BR_X - 8, (BR_X - 8) * TILT, 0, 0, Math.PI * 2);
+      sandX.clip();
+      sandX.beginPath();
+      sandX.arc(p.dstX, p.dstY, p.r + 0.4, 0, Math.PI * 2);
+      sandX.fillStyle = p.col;
+      sandX.fill();
+      sandX.restore();
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────
+  //  DRAW
+  // ──────────────────────────────────────────────────────────
+  function drawDisc3D() {
+    const rimGrad = ctx.createLinearGradient(BCX, BCY + BR_Y,
+                                             BCX, BCY + BR_Y + RIM_H);
+    rimGrad.addColorStop(0, '#4e3010');
+    rimGrad.addColorStop(1, '#1c0c06');
+
+    ctx.beginPath();
+    ctx.ellipse(BCX, BCY + RIM_H, BR_X, BR_Y, 0, 0, Math.PI);
+    ctx.ellipse(BCX, BCY,         BR_X, BR_Y, 0, Math.PI, 0, true);
+    ctx.closePath();
+    ctx.fillStyle = rimGrad;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.ellipse(BCX, BCY + RIM_H, BR_X, BR_Y, 0, 0.05, Math.PI - 0.05);
+    ctx.strokeStyle = '#120806';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur  = 18;
+    const pg = ctx.createRadialGradient(
+      BCX - BR_X*0.28, BCY - BR_Y*0.34, BR_X*0.04,
+      BCX + BR_X*0.08, BCY + BR_Y*0.10, BR_X*1.10
+    );
+    pg.addColorStop(0,    '#dfc88a');
+    pg.addColorStop(0.45, '#c4a864');
+    pg.addColorStop(0.80, '#a48444');
+    pg.addColorStop(1,    '#562e0e');
+    ctx.beginPath();
+    ctx.ellipse(BCX, BCY, BR_X, BR_Y, 0, 0, Math.PI * 2);
+    ctx.fillStyle = pg;
+    ctx.fill();
+    ctx.restore();
+
+    ctx.beginPath();
+    ctx.ellipse(BCX, BCY, BR_X, BR_Y, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = '#381c08';
+    ctx.lineWidth = 3.5;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.ellipse(BCX, BCY, BR_X - 9, (BR_X - 9) * TILT, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(36,14,4,0.20)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+  }
+
+  function drawWire(bx, by, prec) {
+    const alpha = 0.46 + 0.54 * Math.abs(Math.cos(prec));
+    ctx.beginPath();
+    ctx.moveTo(PX, PY + 9);
+    ctx.lineTo(bx, by - 9);
+    ctx.strokeStyle = `rgba(80,58,16,${alpha.toFixed(2)})`;
+    ctx.lineWidth = 0.6;
+    ctx.stroke();
+  }
+
+  function drawPivot() {
+    ctx.save();
+    ctx.translate(PX, PY);
+    const mg = ctx.createLinearGradient(-15, -9, 15, 5);
+    mg.addColorStop(0,   '#6a5030');
+    mg.addColorStop(0.5, '#8a6a42');
+    mg.addColorStop(1,   '#3a2810');
+    ctx.fillStyle = mg;
+    ctx.beginPath();
+    ctx.rect(-15, -9, 30, 12);
+    ctx.fill();
+    ctx.strokeStyle = '#1c1008';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+
+    const bg = ctx.createRadialGradient(-2, -1.5, 0.8, 0, 0, 6);
+    bg.addColorStop(0,   '#ffe878');
+    bg.addColorStop(0.4, '#c89028');
+    bg.addColorStop(1,   '#503010');
+    ctx.beginPath();
+    ctx.arc(0, 3, 6, 0, Math.PI * 2);
+    ctx.fillStyle = bg;
+    ctx.fill();
+    ctx.strokeStyle = '#1c1008';
+    ctx.lineWidth = 0.4;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawBob(bx, by, depth) {
+    ctx.save();
+    ctx.translate(bx, by);
+    const s = 1 - 0.10 * Math.abs(depth);
+    ctx.scale(s, s);
+
+    const g = ctx.createRadialGradient(-4, -6, 1.2, 1, 2, 15);
+    g.addColorStop(0,    '#faf088');
+    g.addColorStop(0.20, '#e4ac20');
+    g.addColorStop(0.55, '#b07010');
+    g.addColorStop(1,    '#3c1800');
+
+    ctx.beginPath();
+    ctx.moveTo(0, -10);
+    ctx.bezierCurveTo( 10, -5,  13,  4,  0, 18);
+    ctx.bezierCurveTo(-13,  4, -10, -5,  0, -10);
+    ctx.closePath();
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.26)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.ellipse(-4, -1, 2.8, 6, -0.32, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,248,200,0.26)';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(0, 16, 1.8, 0, Math.PI * 2);
+    ctx.fillStyle = '#180900';
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // ──────────────────────────────────────────────────────────
+  //  EMIT SAND
+  // ──────────────────────────────────────────────────────────
+  function emitSand(bob, t) {
+    frameN++;
+    if (frameN % 3 !== 0) return;
+    const dst = sandDest(t);
+    for (let i = 0; i < 2; i++) {
+      particles.push(makeParticle(bob.x, bob.y, bob.vx, dst));
+    }
+    particles = particles.filter(p => !p.done);
+  }
+
+  // ──────────────────────────────────────────────────────────
+  //  RENDER
+  // ──────────────────────────────────────────────────────────
+  function render() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.drawImage(texC, 0, 0);
+    drawDisc3D();
+    ctx.drawImage(sandC, 0, 0);
+
+    const bob = bobPos(simTime);
+    emitSand(bob, simTime);
+
+    for (const p of particles) {
+      if (!p.done) stepParticle(p, 1 / 60);
     }
 
-    // ──────────────────────────────────────────────────────────
-    //  PENDULUM MATH
-    // ──────────────────────────────────────────────────────────
-    function bobPos(t) {
-      const swing = SWING_AMP * Math.sin(OMEGA * t);
-      const prec  = PREC_RATE * t;
-      // Project 3D Foucault motion onto front-view screen
-      return {
-        x:     PX   + WIRE * Math.sin(swing) * Math.cos(prec),
-        y:     PY   + WIRE * Math.cos(swing),
-        vx:    WIRE * SWING_AMP * OMEGA * Math.cos(OMEGA * t) * Math.cos(prec),
-        prec,
-        depth: Math.sin(prec)  // depth cue for perspective dimming
-      };
-    }
+    drawWire(bob.x, bob.y, bob.prec);
+    drawPivot();
 
-    // Sand landing position on base plate (world coords → screen)
-    function sandDest(t) {
-      const prec = PREC_RATE * t;
-      const s    = Math.sin(OMEGA * t);
-      return w2s(TRAIL_R * Math.cos(prec) * s,
-                 TRAIL_R * Math.sin(prec) * s);
-    }
-
-    // ──────────────────────────────────────────────────────────
-    //  SAND PARTICLES
-    // ──────────────────────────────────────────────────────────
-    function makeParticle(bx, by, bvx, dst) {
-      // Dark brown sand: R 50-80, G 30-50, B 10-22
-      const r = (52  + (Math.random() * 28) | 0);
-      const g = (32  + (Math.random() * 18) | 0);
-      const b = (10  + (Math.random() * 12) | 0);
-      return {
-        x:    bx + (Math.random() - 0.5) * 5,
-        y:    by + 20,
-        vx:   bvx * 0.15 + (Math.random() - 0.5) * 20,
-        vy:   Math.random() * 22 + 6,
-        r:    Math.random() * 1.3 + 0.45,
-        col:  `rgba(${r},${g},${b},0.92)`,
-        dstX: dst.x + (Math.random() - 0.5) * 5,
-        dstY: dst.y + (Math.random() - 0.5) * 5,
-        done: false
-      };
-    }
-
-    function stepParticle(p, dt) {
-      p.vy += 288 * dt;
-      p.x  += p.vx * dt;
-      p.y  += p.vy * dt;
-      if (p.y >= SEP + 2) {
-        p.done = true;
-        // Stamp dark grain on persistent sand canvas, clipped to plate ellipse
-        sandX.save();
-        sandX.beginPath();
-        sandX.ellipse(BCX, BCY, BR_X - 10, (BR_X - 10) * TILT,
-                      0, 0, Math.PI * 2);
-        sandX.clip();
-        sandX.beginPath();
-        sandX.arc(p.dstX, p.dstY, p.r + 0.4, 0, Math.PI * 2);
-        sandX.fillStyle = p.col;
-        sandX.fill();
-        sandX.restore();
-      }
-    }
-
-    // ──────────────────────────────────────────────────────────
-    //  DRAW: 3-D perspective disc
-    // ──────────────────────────────────────────────────────────
-    function drawDisc3D() {
-      // ① Side rim: visible front band between lower & upper ellipse arcs
-      const rimGrad = ctx.createLinearGradient(BCX, BCY + BR_Y,
-                                               BCX, BCY + BR_Y + RIM_H);
-      rimGrad.addColorStop(0, '#5a3814');
-      rimGrad.addColorStop(1, '#1e0e06');
-
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, W, SEP);
+    ctx.clip();
+    for (const p of particles) {
+      if (p.done) continue;
       ctx.beginPath();
-      // Front arc of bottom (shifted) ellipse — the toe of the rim
-      ctx.ellipse(BCX, BCY + RIM_H, BR_X, BR_Y, 0, 0, Math.PI);
-      // Front arc of top ellipse in reverse — the heel of the rim
-      ctx.ellipse(BCX, BCY,         BR_X, BR_Y, 0, Math.PI, 0, true);
-      ctx.closePath();
-      ctx.fillStyle = rimGrad;
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = p.col;
       ctx.fill();
-
-      // Rim edge shadow line at front toe
-      ctx.beginPath();
-      ctx.ellipse(BCX, BCY + RIM_H, BR_X, BR_Y, 0, 0.05, Math.PI - 0.05);
-      ctx.strokeStyle = '#130806';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      // ② Top disc surface
-      ctx.save();
-      ctx.shadowColor = 'rgba(0,0,0,0.55)';
-      ctx.shadowBlur  = 22;
-
-      const pg = ctx.createRadialGradient(
-        BCX - BR_X * 0.28, BCY - BR_Y * 0.35, BR_X * 0.04,
-        BCX + BR_X * 0.08, BCY + BR_Y * 0.10, BR_X * 1.08
-      );
-      pg.addColorStop(0,    '#e2cc8e');
-      pg.addColorStop(0.45, '#c8ac6a');
-      pg.addColorStop(0.80, '#a88848');
-      pg.addColorStop(1,    '#5c3010');
-
-      ctx.beginPath();
-      ctx.ellipse(BCX, BCY, BR_X, BR_Y, 0, 0, Math.PI * 2);
-      ctx.fillStyle = pg;
-      ctx.fill();
-      ctx.restore();
-
-      // ③ Outer rim stroke on top surface
-      ctx.beginPath();
-      ctx.ellipse(BCX, BCY, BR_X, BR_Y, 0, 0, Math.PI * 2);
-      ctx.strokeStyle = '#3a1e08';
-      ctx.lineWidth = 4;
-      ctx.stroke();
-
-      // ④ Inner groove ring (perspective ellipse)
-      ctx.beginPath();
-      ctx.ellipse(BCX, BCY, BR_X - 11, (BR_X - 11) * TILT,
-                  0, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(38,16,4,0.22)';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
     }
+    ctx.restore();
 
-    // ──────────────────────────────────────────────────────────
-    //  DRAW: wire, pivot, bob
-    // ──────────────────────────────────────────────────────────
-    function drawWire(bx, by, prec) {
-      // Wire slightly fades when pendulum swings in depth (perspective hint)
-      const alpha = 0.48 + 0.52 * Math.abs(Math.cos(prec));
-      ctx.beginPath();
-      ctx.moveTo(PX, PY + 11);
-      ctx.lineTo(bx, by - 11);
-      ctx.strokeStyle = `rgba(82,60,18,${alpha.toFixed(2)})`;
-      ctx.lineWidth = 0.7;
-      ctx.stroke();
-    }
+    drawBob(bob.x, bob.y, bob.depth);
+  }
 
-    function drawPivot() {
-      ctx.save();
-      ctx.translate(PX, PY);
+  // ──────────────────────────────────────────────────────────
+  //  CITY UI
+  // ──────────────────────────────────────────────────────────
+  const cityList = document.getElementById('cityList');
+  const precInfo = document.getElementById('precInfo');
 
-      // Mounting plate
-      const mg = ctx.createLinearGradient(-20, -12, 20, 6);
-      mg.addColorStop(0,   '#6a5030');
-      mg.addColorStop(0.5, '#8a6a42');
-      mg.addColorStop(1,   '#3a2810');
-      ctx.fillStyle = mg;
-      ctx.beginPath();
-      ctx.rect(-20, -12, 40, 16);
-      ctx.fill();
-      ctx.strokeStyle = '#1e1208';
-      ctx.lineWidth = 1;
-      ctx.stroke();
+  function selectCity(idx) {
+    currentCity = idx;
+    const city = CITIES[idx];
+    currentPrecRate = cityPrecRate(city.lat);
+    // Clear sand trail and redraw compass
+    resetSand();
+    particles = [];
+    // Update UI
+    document.querySelectorAll('.city-btn').forEach((btn, i) => {
+      btn.classList.toggle('active', i === idx);
+    });
+    const rpm = (currentPrecRate * 60 / (2 * Math.PI)).toFixed(2);
+    precInfo.textContent = `${rpm} rpm`;
+  }
 
-      // Ball bearing (brass)
-      const bg = ctx.createRadialGradient(-2.5, -2, 1, 0, 0, 7.5);
-      bg.addColorStop(0,   '#ffe878');
-      bg.addColorStop(0.4, '#c89028');
-      bg.addColorStop(1,   '#503010');
-      ctx.beginPath();
-      ctx.arc(0, 4, 7.5, 0, Math.PI * 2);
-      ctx.fillStyle = bg;
-      ctx.fill();
-      ctx.strokeStyle = '#1e1208';
-      ctx.lineWidth = 0.5;
-      ctx.stroke();
+  CITIES.forEach((city, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'city-btn' + (i === 0 ? ' active' : '');
+    btn.innerHTML = `${city.name}${city.country ? ' <small style="color:#5a3c18;font-size:8px">${city.country}</small>' : ''}
+      <span class="lat-badge">${city.lat}°N</span>`;
+    btn.addEventListener('click', () => selectCity(i));
+    cityList.appendChild(btn);
+  });
 
-      ctx.restore();
-    }
+  // Init precInfo
+  const initRpm = (currentPrecRate * 60 / (2 * Math.PI)).toFixed(2);
+  precInfo.textContent = `${initRpm} rpm`;
 
-    function drawBob(bx, by, depth) {
-      ctx.save();
-      ctx.translate(bx, by);
-
-      // Slight scale-down when swinging in depth
-      const s = 1 - 0.10 * Math.abs(depth);
-      ctx.scale(s, s);
-
-      // Brass/gold teardrop gradient
-      const g = ctx.createRadialGradient(-5, -7, 1.5, 1, 3, 18);
-      g.addColorStop(0,    '#faf088');
-      g.addColorStop(0.20, '#e4ac20');
-      g.addColorStop(0.55, '#b07010');
-      g.addColorStop(1,    '#3c1800');
-
-      // Teardrop body
-      ctx.beginPath();
-      ctx.moveTo(0, -12);
-      ctx.bezierCurveTo( 12, -6,  16,  5,  0, 22);
-      ctx.bezierCurveTo(-16,  5, -12, -6,  0, -12);
-      ctx.closePath();
-      ctx.fillStyle = g;
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(0,0,0,0.28)';
-      ctx.lineWidth = 0.6;
-      ctx.stroke();
-
-      // Primary specular highlight
-      ctx.beginPath();
-      ctx.ellipse(-5, -1, 3.5, 7.5, -0.32, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,248,200,0.28)';
-      ctx.fill();
-
-      // Small secondary highlight
-      ctx.beginPath();
-      ctx.ellipse(-3, -6, 1.4, 2.4, -0.2, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,255,220,0.20)';
-      ctx.fill();
-
-      // Sand nozzle hole at bottom
-      ctx.beginPath();
-      ctx.arc(0, 20, 2.2, 0, Math.PI * 2);
-      ctx.fillStyle = '#180900';
-      ctx.fill();
-
-      ctx.restore();
-    }
-
-    // ──────────────────────────────────────────────────────────
-    //  EMIT SAND
-    // ──────────────────────────────────────────────────────────
-    function emitSand(bob, t) {
-      frameN++;
-      if (frameN % 3 !== 0) return;   // ~20 emission events / sec
-
-      const dst = sandDest(t);
-      for (let i = 0; i < 2; i++) {
-        particles.push(makeParticle(bob.x, bob.y, bob.vx, dst));
-      }
-      // Remove grains that have already landed
-      particles = particles.filter(p => !p.done);
-    }
-
-    // ──────────────────────────────────────────────────────────
-    //  MAIN RENDER
-    // ──────────────────────────────────────────────────────────
-    function render() {
-      ctx.clearRect(0, 0, W, H);
-
-      // 1. Static texture (stone wall + floor)
-      ctx.drawImage(texC, 0, 0);
-
-      // 2. 3-D perspective disc (rim + surface)
-      drawDisc3D();
-
-      // 3. Sand trail + compass rose (persistent layer)
-      ctx.drawImage(sandC, 0, 0);
-
-      // 4. Current bob position
-      const bob = bobPos(simTime);
-      emitSand(bob, simTime);
-
-      // 5. Advance particle physics
-      for (const p of particles) {
-        if (!p.done) stepParticle(p, 1 / 60);
-      }
-
-      // 6. Wire (behind bob)
-      drawWire(bob.x, bob.y, bob.prec);
-
-      // 7. Pivot mount
-      drawPivot();
-
-      // 8. Falling particles — clipped to upper chamber only
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(0, 0, W, SEP);
-      ctx.clip();
-      for (const p of particles) {
-        if (p.done) continue;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = p.col;
-        ctx.fill();
-      }
-      ctx.restore();
-
-      // 9. Bob (topmost)
-      drawBob(bob.x, bob.y, bob.depth);
-    }
-
-    // ──────────────────────────────────────────────────────────
-    //  ANIMATION LOOP
-    // ──────────────────────────────────────────────────────────
-    function loop(ts) {
-      if (lastTS === null) lastTS = ts;
-      const dt = Math.min((ts - lastTS) / 1000, 0.05);
-      lastTS = ts;
-      simTime += dt;
-      render();
-      requestAnimationFrame(loop);
-    }
-
+  // ──────────────────────────────────────────────────────────
+  //  ANIMATION LOOP
+  // ──────────────────────────────────────────────────────────
+  function loop(ts) {
+    if (lastTS === null) lastTS = ts;
+    const dt = Math.min((ts - lastTS) / 1000, 0.05);
+    lastTS = ts;
+    simTime += dt;
+    render();
     requestAnimationFrame(loop);
-  </script>
+  }
+
+  requestAnimationFrame(loop);
+</script>
 </body>
 </html>
