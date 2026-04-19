@@ -318,16 +318,16 @@
   // ── Canvas ─────────────────────────────────────────────────
   const c   = document.getElementById('c');
   const ctx = c.getContext('2d');
-  const W = 234, H = 342;
+  const W = 234, H = 302;
   c.width = W; c.height = H;
 
   // ── Layout ─────────────────────────────────────────────────
   const PX    = W / 2;
   const PY    = 16;
-  const WIRE  = 117;   // shorter pendulum
-  const SEP   = 178;
+  const WIRE  = 117;
+  const SEP   = 218;   // +40: top tile row removed
   const BCX   = W / 2;
-  const BCY   = 260;
+  const BCY   = 258;   // centred in new floor (218+42)
   const TILT  = 0.40;
   const BR_X  = 79;
   const BR_Y  = BR_X * TILT;
