@@ -436,38 +436,135 @@
   // ──────────────────────────────────────────────────────────
   //  SAND PARTICLES
   // ──────────────────────────────────────────────────────────
+
+  // Grain colour palette: dark ochre / warm sienna
+  function grainColor(alpha) {
+    const base = Math.random();
+    let r, g, b;
+    if (base < 0.5) {
+      // dark sienna
+      r = (48  + (Math.random() * 28) | 0);
+      g = (26  + (Math.random() * 16) | 0);
+      b = (8   + (Math.random() *  8) | 0);
+    } else {
+      // slightly lighter ochre for variety
+      r = (72  + (Math.random() * 22) | 0);
+      g = (44  + (Math.random() * 16) | 0);
+      b = (14  + (Math.random() * 10) | 0);
+    }
+    return `rgba(${r},${g},${b},${alpha.toFixed(2)})`;
+  }
+
   function makeParticle(bx, by, bvx, dst) {
-    const r = (50  + (Math.random() * 30) | 0);
-    const g = (30  + (Math.random() * 18) | 0);
-    const b = (10  + (Math.random() * 12) | 0);
+    // Trickle angle: narrow cone downward from nozzle, slight horizontal spread
+    const angle = (Math.random() - 0.5) * 0.5;  // ±0.25 rad
+    const speed = Math.random() * 18 + 5;
     return {
-      x: bx + (Math.random() - 0.5) * 4,
-      y: by + 16,
-      vx: bvx * 0.15 + (Math.random() - 0.5) * 18,
-      vy: Math.random() * 20 + 6,
-      r:  Math.random() * 1.2 + 0.4,
-      col: `rgba(${r},${g},${b},0.92)`,
-      dstX: dst.x + (Math.random() - 0.5) * 4,
-      dstY: dst.y + (Math.random() - 0.5) * 4,
-      done: false
+      x:    bx + (Math.random() - 0.5) * 3,
+      y:    by + 16,
+      vx:   bvx * 0.12 + Math.sin(angle) * speed,
+      vy:   Math.cos(angle) * speed * 0.4 + Math.random() * 8,
+      r:    Math.random() * 1.0 + 0.35,
+      life: 1.0,          // fades as it falls
+      col:  grainColor(0.95),
+      // Where the grain will stamp on the disc (Foucault coordinates)
+      dstX: dst.x + (Math.random() - 0.5) * 5,
+      dstY: dst.y + (Math.random() - 0.5) * 5,
+      done: false,
+      bounced: false
     };
   }
 
-  function stepParticle(p, dt) {
-    p.vy += 280 * dt;
-    p.x  += p.vx * dt;
-    p.y  += p.vy * dt;
-    if (p.y >= SEP + 2) {
-      p.done = true;
-      sandX.save();
+  // Stamp a grain + a tiny micro-scatter splash on landing
+  function stampGrain(p) {
+    sandX.save();
+    sandX.beginPath();
+    sandX.ellipse(BCX, BCY, BR_X - 8, (BR_X - 8) * TILT, 0, 0, Math.PI * 2);
+    sandX.clip();
+
+    // Central grain
+    sandX.beginPath();
+    sandX.arc(p.dstX, p.dstY, p.r + 0.5, 0, Math.PI * 2);
+    sandX.fillStyle = p.col;
+    sandX.fill();
+
+    // Micro-scatter: 2-4 tiny satellite grains around landing point
+    const splats = 2 + (Math.random() * 3 | 0);
+    for (let i = 0; i < splats; i++) {
+      const da  = Math.random() * Math.PI * 2;
+      const dr  = Math.random() * 4 + 1;
+      const sr  = Math.random() * 0.55 + 0.15;
       sandX.beginPath();
-      sandX.ellipse(BCX, BCY, BR_X - 8, (BR_X - 8) * TILT, 0, 0, Math.PI * 2);
-      sandX.clip();
-      sandX.beginPath();
-      sandX.arc(p.dstX, p.dstY, p.r + 0.4, 0, Math.PI * 2);
-      sandX.fillStyle = p.col;
+      sandX.arc(p.dstX + Math.cos(da) * dr,
+                p.dstY + Math.sin(da) * dr * TILT,  // perspective squish
+                sr, 0, Math.PI * 2);
+      sandX.fillStyle = grainColor(0.5 + Math.random() * 0.3);
       sandX.fill();
-      sandX.restore();
+    }
+
+    // Faint dust halo at impact
+    const halo = sandX.createRadialGradient(
+      p.dstX, p.dstY, 0, p.dstX, p.dstY, p.r * 5 + 3);
+    halo.addColorStop(0,   'rgba(90,55,20,0.12)');
+    halo.addColorStop(1,   'rgba(90,55,20,0)');
+    sandX.beginPath();
+    sandX.arc(p.dstX, p.dstY, p.r * 5 + 3, 0, Math.PI * 2);
+    sandX.fillStyle = halo;
+    sandX.fill();
+
+    sandX.restore();
+  }
+
+  // Trail accumulation: blend a soft footprint along the Lissajous path
+  // Called every few frames to thicken the sand ridge under the nozzle
+  let trailTimer = 0;
+  function stampTrail(t) {
+    trailTimer += 1 / 60;
+    if (trailTimer < 0.04) return;   // ~25 stamps/sec
+    trailTimer = 0;
+
+    const dst = sandDest(t);
+
+    sandX.save();
+    sandX.beginPath();
+    sandX.ellipse(BCX, BCY, BR_X - 8, (BR_X - 8) * TILT, 0, 0, Math.PI * 2);
+    sandX.clip();
+
+    // Soft Gaussian mound: a heap of sand under the nozzle
+    const mound = sandX.createRadialGradient(
+      dst.x, dst.y, 0, dst.x, dst.y, 5.5);
+    mound.addColorStop(0,   'rgba(60,34,10,0.28)');
+    mound.addColorStop(0.5, 'rgba(55,30, 8,0.12)');
+    mound.addColorStop(1,   'rgba(50,26, 6,0)');
+    sandX.beginPath();
+    sandX.arc(dst.x, dst.y, 5.5, 0, Math.PI * 2);
+    sandX.fillStyle = mound;
+    sandX.fill();
+
+    sandX.restore();
+  }
+
+  function stepParticle(p, dt) {
+    p.vy  += 285 * dt;     // gravity
+    p.vx  *= 0.998;        // very slight air drag
+    p.x   += p.vx * dt;
+    p.y   += p.vy * dt;
+    p.life = Math.max(0, p.life - dt * 0.8);   // fade toward landing
+
+    if (p.y >= SEP - 1 && !p.bounced) {
+      // Single low bounce for a few grains (adds scatter realism)
+      if (Math.random() < 0.25) {
+        p.bounced = true;
+        p.vy = -p.vy * (0.08 + Math.random() * 0.10);
+        p.vx += (Math.random() - 0.5) * 12;
+      } else {
+        p.done = true;
+        stampGrain(p);
+      }
+    }
+    if (p.bounced && p.y >= SEP + 1) {
+      p.done = true;
+      stampGrain(p);
     }
   }
 
@@ -721,6 +818,7 @@
     // 6. Current bob
     const bob = bobPos(simTime);
     emitSand(bob, simTime);
+    stampTrail(simTime);   // continuous mound buildup along Lissajous path
     for (const p of particles) {
       if (!p.done) stepParticle(p, 1 / 60);
     }
@@ -735,15 +833,29 @@
     // 9. Falling particles (clipped to upper chamber)
     ctx.save();
     ctx.beginPath();
-    ctx.rect(0, 0, W, SEP);
+    ctx.rect(0, 0, W, SEP + 4);
     ctx.clip();
     for (const p of particles) {
       if (p.done) continue;
+      // Fade opacity with life; also draw tiny motion-blur tail
+      const alpha = Math.max(0.1, p.life * 0.92);
+      ctx.globalAlpha = alpha;
+      // Tail: small streak in direction of travel
+      if (Math.abs(p.vy) > 30) {
+        const tailLen = Math.min(p.vy * 0.018, 5);
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x - p.vx * 0.012, p.y - tailLen);
+        ctx.strokeStyle = p.col;
+        ctx.lineWidth = p.r * 0.8;
+        ctx.stroke();
+      }
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
       ctx.fillStyle = p.col;
       ctx.fill();
     }
+    ctx.globalAlpha = 1;
     ctx.restore();
 
     // 10. Bob (topmost)
