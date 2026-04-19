@@ -611,58 +611,55 @@
     };
   }
 
-  // Stamp a grain + a tiny micro-scatter splash on landing
-  function stampGrain(p) {
-    sandX.save();
+  // Draw a crisp pixel-rect grain (avoids arc antialiasing)
+  function pixelGrain(x, y, size, col) {
+    const px = x | 0;
+    const py = y | 0;
+    const s  = Math.max(1, size | 0);
+    sandX.fillStyle = col;
+    sandX.fillRect(px, py, s, s);
+  }
+
+  // Clip helper
+  function clipToDisc() {
     sandX.beginPath();
     sandX.ellipse(BCX, BCY, BR_X - 8, (BR_X - 8) * TILT, 0, 0, Math.PI * 2);
     sandX.clip();
+  }
 
-    // Central grain
-    sandX.beginPath();
-    sandX.arc(p.dstX, p.dstY, p.r + 0.5, 0, Math.PI * 2);
-    sandX.fillStyle = p.col;
-    sandX.fill();
+  // Stamp a grain + tiny pixel scatter on landing
+  function stampGrain(p) {
+    sandX.save();
+    clipToDisc();
 
-    // Micro-scatter: 1-2 hard-edge satellite grains (no blur)
+    // Central grain: 1 or 2px solid pixel rect
+    const sz = Math.random() < 0.5 ? 1 : 2;
+    pixelGrain(p.dstX, p.dstY, sz, p.col);
+
+    // 1-2 satellite pixels nearby
     const splats = 1 + (Math.random() * 2 | 0);
     for (let i = 0; i < splats; i++) {
       const da = Math.random() * Math.PI * 2;
-      const dr = Math.random() * 3 + 0.8;
-      const sr = Math.random() * 0.4 + 0.2;
-      sandX.beginPath();
-      sandX.arc(p.dstX + Math.cos(da) * dr,
-                p.dstY + Math.sin(da) * dr * TILT,
-                sr, 0, Math.PI * 2);
-      sandX.fillStyle = grainColor(0.88);
-      sandX.fill();
+      const dr = Math.random() * 3 + 1;
+      pixelGrain(
+        p.dstX + Math.cos(da) * dr,
+        p.dstY + Math.sin(da) * dr * TILT,
+        1, grainColor(0.85));
     }
-
 
     sandX.restore();
   }
 
-  // Trail accumulation: blend a soft footprint along the Lissajous path
-  // Called every few frames to thicken the sand ridge under the nozzle
+  // Trail accumulation: single crisp pixel along Lissajous path
   let trailTimer = 0;
   function stampTrail(t) {
     trailTimer += 1 / 60;
-    if (trailTimer < 0.04) return;   // ~25 stamps/sec
+    if (trailTimer < 0.04) return;
     trailTimer = 0;
-
     const dst = sandDest(t);
-
     sandX.save();
-    sandX.beginPath();
-    sandX.ellipse(BCX, BCY, BR_X - 8, (BR_X - 8) * TILT, 0, 0, Math.PI * 2);
-    sandX.clip();
-
-    // Hard-edge grain dot under nozzle (no gradient, no blur)
-    sandX.beginPath();
-    sandX.arc(dst.x, dst.y, 0.9, 0, Math.PI * 2);
-    sandX.fillStyle = grainColor(0.72);
-    sandX.fill();
-
+    clipToDisc();
+    pixelGrain(dst.x, dst.y, 1, grainColor(0.65));
     sandX.restore();
   }
 
