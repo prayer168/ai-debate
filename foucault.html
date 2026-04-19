@@ -29,7 +29,7 @@
     .sidebar {
       display: flex;
       flex-direction: column;
-      width: 168px;
+      width: 148px;
       padding: 0;
       gap: 0;
       border: 1px solid #2e1c0a;
@@ -238,15 +238,11 @@
     <div class="sb-section">
       <div class="ornament">· · ·</div>
       <div class="desc">
-        1851年，傅科於巴黎先賢祠<br>
-        以長 67 m 的鉛錘，<br>
-        首次直接證明<em>地球自轉</em>。<br><br>
-        擺動平面在慣性空間中<br>
-        保持不變；地球在其下方<br>
-        緩緩轉動，沙痕因此<br>
-        形成<em>旋轉花紋</em>。<br><br>
-        進動週期 T = 24h / sin φ<br>
-        φ = 當地緯度
+        1851年巴黎先賢祠，傅科以<br>
+        67m 鉛錘直證<em>地球自轉</em>。<br><br>
+        擺面固定於慣性空間，<br>
+        沙痕呈現<em>旋轉花紋</em>。<br><br>
+        T = 24h / sin φ
       </div>
     </div>
 
@@ -318,20 +314,20 @@
   // ── Canvas ─────────────────────────────────────────────────
   const c   = document.getElementById('c');
   const ctx = c.getContext('2d');
-  const W = 260, H = 380;
+  const W = 234, H = 342;
   c.width = W; c.height = H;
 
   // ── Layout ─────────────────────────────────────────────────
   const PX    = W / 2;
-  const PY    = 18;
-  const WIRE  = 168;
-  const SEP   = 220;
+  const PY    = 16;
+  const WIRE  = 130;   // shorter pendulum
+  const SEP   = 196;
   const BCX   = W / 2;
-  const BCY   = 308;
+  const BCY   = 278;
   const TILT  = 0.40;
-  const BR_X  = 88;
+  const BR_X  = 79;
   const BR_Y  = BR_X * TILT;
-  const RIM_H = 8;
+  const RIM_H = 7;
   const TRAIL_R = BR_X * 0.66;
 
   // ── Physics ────────────────────────────────────────────────
