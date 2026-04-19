@@ -624,17 +624,17 @@
     sandX.fillStyle = p.col;
     sandX.fill();
 
-    // Micro-scatter: 2-4 tiny satellite grains around landing point
-    const splats = 2 + (Math.random() * 3 | 0);
+    // Micro-scatter: 1-2 hard-edge satellite grains (no blur)
+    const splats = 1 + (Math.random() * 2 | 0);
     for (let i = 0; i < splats; i++) {
-      const da  = Math.random() * Math.PI * 2;
-      const dr  = Math.random() * 4 + 1;
-      const sr  = Math.random() * 0.55 + 0.15;
+      const da = Math.random() * Math.PI * 2;
+      const dr = Math.random() * 3 + 0.8;
+      const sr = Math.random() * 0.4 + 0.2;
       sandX.beginPath();
       sandX.arc(p.dstX + Math.cos(da) * dr,
-                p.dstY + Math.sin(da) * dr * TILT,  // perspective squish
+                p.dstY + Math.sin(da) * dr * TILT,
                 sr, 0, Math.PI * 2);
-      sandX.fillStyle = grainColor(0.5 + Math.random() * 0.3);
+      sandX.fillStyle = grainColor(0.88);
       sandX.fill();
     }
 
@@ -657,15 +657,10 @@
     sandX.ellipse(BCX, BCY, BR_X - 8, (BR_X - 8) * TILT, 0, 0, Math.PI * 2);
     sandX.clip();
 
-    // Soft Gaussian mound: a heap of sand under the nozzle
-    const mound = sandX.createRadialGradient(
-      dst.x, dst.y, 0, dst.x, dst.y, 5.5);
-    mound.addColorStop(0,   'rgba(60,34,10,0.28)');
-    mound.addColorStop(0.5, 'rgba(55,30, 8,0.12)');
-    mound.addColorStop(1,   'rgba(50,26, 6,0)');
+    // Hard-edge grain dot under nozzle (no gradient, no blur)
     sandX.beginPath();
-    sandX.arc(dst.x, dst.y, 5.5, 0, Math.PI * 2);
-    sandX.fillStyle = mound;
+    sandX.arc(dst.x, dst.y, 0.9, 0, Math.PI * 2);
+    sandX.fillStyle = grainColor(0.72);
     sandX.fill();
 
     sandX.restore();
