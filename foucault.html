@@ -406,9 +406,10 @@
         const baseB = 198 + (Math.random() * 12 | 0);
 
         // Fill tile pixel by pixel with marble pattern
-        const tileImg = tx.getImageData(tx0, ty0,
-          Math.min(TILE, W - tx0),
-          Math.min(TILE, H - ty0));
+        const tileW = Math.min(TILE, W - tx0);
+        const tileH = Math.min(TILE, H - ty0);
+        if (tileW <= 0 || tileH <= 0) continue;   // skip zero-size tiles
+        const tileImg = tx.getImageData(tx0, ty0, tileW, tileH);
         const td = tileImg.data;
         for (let py = 0; py < tileImg.height; py++) {
           for (let px = 0; px < tileImg.width; px++) {
