@@ -39,8 +39,12 @@
 
     /* ── Section block ── */
     .sb-section {
-      padding: 11px 12px;
+      padding: 8px 12px;
       border-bottom: 1px solid #251408;
+    }
+    .sb-section.desc-section {
+      padding-top: 4px;
+      padding-bottom: 4px;
     }
     .sb-section:last-child { border-bottom: none; }
 
@@ -235,7 +239,7 @@
     </div>
 
     <!-- Description -->
-    <div class="sb-section">
+    <div class="sb-section desc-section">
       <div class="ornament">· · ·</div>
       <div class="desc">
         1851年巴黎先賢祠，傅科以<br>
@@ -321,9 +325,9 @@
   const PX    = W / 2;
   const PY    = 16;
   const WIRE  = 117;   // shorter pendulum
-  const SEP   = 196;
+  const SEP   = 178;
   const BCX   = W / 2;
-  const BCY   = 278;
+  const BCY   = 260;
   const TILT  = 0.40;
   const BR_X  = 79;
   const BR_Y  = BR_X * TILT;
